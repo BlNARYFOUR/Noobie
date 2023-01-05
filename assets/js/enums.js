@@ -17,8 +17,8 @@ const PieceType = {
 };
 
 const Color = {
-    BLACK: 1,
-    WHITE: 2
+    BLACK: 'black',
+    WHITE: 'white'
 };
 
 const PIECE_EVALUATIONS = [];
@@ -57,6 +57,10 @@ class Move {
     constructor(coordinates = Coordinates.INVALID, newCoordinates = Coordinates.INVALID) {
         this.position = coordinates;
         this.newPosition = newCoordinates;
+    }
+
+    equals(move) {
+        return this.position.equals(move.position) && this.newPosition.equals(move.newPosition);
     }
 
     isInvalid() {
@@ -117,9 +121,21 @@ class Board {
         return Coordinates.INVALID;
     }
 
-    move(move) {
+    doMove(move) {
         this.setup[move.newPosition.x][move.newPosition.y] = this.setup[move.position.x][move.position.y];
         this.setup[move.position.x][move.position.y] = new Piece(PieceType.EMPTY);
+
+        return this;
+    }
+
+    switchTurn() {
+        this.turn = this.turn === Color.WHITE ? Color.BLACK : Color.WHITE;
+
+        return this;
+    }
+
+    setPreviousMove(move) {
+        this.previousMove = move;
 
         return this;
     }
@@ -128,9 +144,7 @@ class Board {
         const isLegal = Rules.isLegalMove(this, move);
 
         if(isLegal) {
-            this.move(move);
-            this.turn = this.turn === Color.WHITE ? Color.BLACK : Color.WHITE;
-            this.previousMove = move;
+            this.doMove(move).switchTurn().setPreviousMove(move);
 
             return true;
         }

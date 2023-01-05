@@ -5,5 +5,5 @@ const UI = new UserInterface();
 function init() {
     const BOARD_ID = UI.createDefaultBoard();
 
-    UI.printBoard(BOARD_ID);
+    UI.printBoard(BOARD_ID).showBoard(BOARD_ID);
 }

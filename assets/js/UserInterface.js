@@ -16,8 +16,27 @@ class UserInterface {
         return this;
     }
 
-    addHTMLBoard() {
-        // todo
+    showBoard(index) {
+        const BOARDS_ELEMENT = document.querySelector('#boards');
+        let boardHTML = `<li id="board-${index}-wrapper"><ul id="board-${index}" class="chess-board">`, squareColor = Color.WHITE;
+
+        this.boards[index].setup.forEach((column, x) => {
+            boardHTML += `<li data-board-id="${index}"><ul data-board-id="${index}" class="chess-column">`;
+
+            column.forEach((piece, y) => {
+                boardHTML += `<li data-board-id="${index}" data-x="${x}" data-y="${y}" class="chess-square bg-${squareColor} chess-piece chess-piece-${this.pieceTypeToString(piece)}-${piece.color}"></li>`;
+
+                squareColor = squareColor === Color.WHITE ? Color.BLACK : Color.WHITE;
+            });
+
+            squareColor = squareColor === Color.WHITE ? Color.BLACK : Color.WHITE;
+
+            boardHTML += '</ul></li>';
+        });
+
+        boardHTML += '</ul></li>';
+
+        BOARDS_ELEMENT.innerHTML += boardHTML;
 
         return this;
     }
@@ -36,16 +55,18 @@ class UserInterface {
                     colorArr.push('color:rgba(0,0,0,0.5);');
                 }
 
-                rtStr += '%c' + this.pieceTypeToLetter(piece) + ' ';
+                rtStr += '%c' + this.pieceTypeToChar(piece) + ' ';
             });
 
             rtStr += '\n';
         });
 
         console.log(rtStr, ...colorArr);
+
+        return this;
     }
 
-    pieceTypeToLetter(piece) {
+    pieceTypeToChar(piece) {
         switch (piece.type) {
             case PieceType.EMPTY:
                 return 'X';
@@ -61,6 +82,25 @@ class UserInterface {
                 return 'B';
             case PieceType.KING:
                 return 'K';
+        }
+    }
+
+    pieceTypeToString(piece) {
+        switch (piece.type) {
+            case PieceType.EMPTY:
+                return 'empty';
+            case PieceType.PAWN:
+                return 'pawn';
+            case PieceType.ROOK:
+                return 'rook';
+            case PieceType.KNIGHT:
+                return 'knight';
+            case PieceType.QUEEN:
+                return 'queen';
+            case PieceType.BISHOP:
+                return 'bishop';
+            case PieceType.KING:
+                return 'king';
         }
     }
 }
