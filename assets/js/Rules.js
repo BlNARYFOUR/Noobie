@@ -8,8 +8,6 @@ class Rules {
         const POSSIBLE_MOVES = Rules.getPossibleMovesByPieceType(board, coordinates);
         const LEGAL_MOVES = [];
 
-        console.log(POSSIBLE_MOVES);
-
         POSSIBLE_MOVES.forEach(possibleMove => {
             if (Rules.isLegalMove(board, possibleMove)) {
                 LEGAL_MOVES.push(possibleMove);
@@ -23,6 +21,8 @@ class Rules {
         switch (board.getPiece(coordinates).type) {
             case PieceType.EMPTY:
                 return [];
+            case PieceType.PAWN:
+                return Rules.getPossiblePawnMoves(coordinates);
             case PieceType.ROOK:
                 return Rules.getPossibleRookMoves(coordinates);
             case PieceType.KNIGHT:
@@ -44,6 +44,8 @@ class Rules {
         switch (board.getPiece(move.position).type) {
             case PieceType.EMPTY:
                 return false;
+            case PieceType.PAWN:
+                return Rules.isLegalPawnMove(board, move);
             case PieceType.ROOK:
                 return Rules.isLegalRookMove(board, move);
             case PieceType.KNIGHT:
@@ -67,7 +69,7 @@ class Rules {
     }
 
     static doesMoveResultInCheck(board, move) {
-        const NEW_BOARD = BoardFactory.createInstance(Helper.deepCopy(board.setup));
+        const NEW_BOARD = BoardFactory.createInstance(Helper.deepCopy(board.setup), board.turn);
         NEW_BOARD.doMove(move);
 
         return Rules.isCheck(NEW_BOARD);
@@ -83,6 +85,99 @@ class Rules {
         // todo: find all opposite color pieces and see if capturing the king is legal
 
         return false;
+    }
+
+    static getPossiblePawnMoves(coordinates) {
+        return [
+            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y - 0)),   // 1 up
+            new Move(coordinates, new Coordinates(coordinates.x - 2, coordinates.y - 0)),   // 2 up
+            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y - 1)),   // 1 up, 1 left
+            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 1)),   // 1 up, 1 right
+            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y - 0)),   // 1 down
+            new Move(coordinates, new Coordinates(coordinates.x + 2, coordinates.y - 0)),   // 2 down
+            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y - 1)),   // 1 down, 1 left
+            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 1)),   // 1 down, 1 right
+        ];
+    }
+
+    static isEnPassant(board, move) {
+        const RELATIVE_TOP = board.getPiece(move.position).color === Color.WHITE ? -1 : 1;
+
+        return !board.previousMove.isInvalid()
+            && board.getPiece(move.position).type === PieceType.PAWN
+            && board.getPiece(board.previousMove.newPosition).type === PieceType.PAWN
+            && board.getPiece(board.previousMove.newPosition).moveCount === 1
+            && board.previousMove.newPosition.x === move.position.x
+            && move.newPosition.y === board.previousMove.newPosition.y
+            && (move.newPosition.x - RELATIVE_TOP) === board.previousMove.newPosition.x
+            && (
+                board.previousMove.newPosition.y === (move.position.y - 1)
+                || board.previousMove.newPosition.y === (move.position.y + 1)
+            )
+    }
+
+    static isLegalPawnMove(board, move) {
+        console.log(move);
+
+        const PAWN = board.getPiece(move.position);
+        let possibleMoves = Rules.getPossiblePawnMoves(move.position);
+        let relativeTop = -1;
+
+        // Filter invalid moves
+        possibleMoves = possibleMoves.filter(possibleMove => {
+            return !possibleMove.isInvalid();
+        });
+
+        // Filter on pawn color
+        if(PAWN.color === Color.WHITE) {
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return possibleMove.newPosition.x < possibleMove.position.x;
+            });
+        } else {
+            relativeTop = 1;
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return possibleMove.position.x < possibleMove.newPosition.x;
+            });
+        }
+
+        // Filter if two up is not possible
+        if(
+            0 < PAWN.moveCount
+            || board.getPiece(new Coordinates(move.position.x + relativeTop * 2, move.position.y)).type !== PieceType.EMPTY
+        ) {
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return possibleMove.newPosition.x !== (possibleMove.position.x + relativeTop * 2);
+            });
+        }
+
+        // Filter if one up is not possible
+        if(board.getPiece(new Coordinates(move.position.x + relativeTop, move.position.y)).type !== PieceType.EMPTY) {
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return possibleMove.newPosition.x !== (possibleMove.position.x + relativeTop)
+                    || possibleMove.newPosition.y !== possibleMove.position.y;
+            });
+        }
+
+        // Filter for captures
+        possibleMoves = possibleMoves.filter(possibleMove => {
+            return possibleMove.newPosition.y === possibleMove.position.y
+                || board.getPiece(possibleMove.newPosition).type !== PieceType.EMPTY
+                || Rules.isEnPassant(board, possibleMove);
+        });
+
+        let isLegal = false;
+
+        console.log('Legal moves:', possibleMoves);
+
+        possibleMoves.forEach(possibleMove => {
+            if (possibleMove.newPosition.equals(move.newPosition)) {
+                isLegal = true;
+            }
+        });
+
+        console.log('Is legal:', isLegal);
+
+        return isLegal;
     }
 
     static getPossibleRookMoves(coordinates) {

@@ -123,6 +123,11 @@ class Board {
     }
 
     doMove(move) {
+        if(Rules.isEnPassant(this, move)) {
+            console.log(move.position.x, move.newPosition.y);
+            this.setup[move.position.x][move.newPosition.y] = new Piece();
+        }
+
         this.getPiece(move.position).moveCount++;
         this.setup[move.newPosition.x][move.newPosition.y] = this.setup[move.position.x][move.position.y];
         this.setup[move.position.x][move.position.y] = new Piece();
@@ -160,8 +165,8 @@ class Board {
 const BoardFactory = (function () {
     let nextId = 0;
 
-    function createInstance(setup = null) {
-        return new Board(nextId++, setup);
+    function createInstance(setup = null, turn = Color.WHITE) {
+        return new Board(nextId++, setup, turn);
     }
 
     function createDefaultInstance() {

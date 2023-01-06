@@ -117,6 +117,7 @@ class UserInterface {
         const PIECE = board.getPiece(move.position);
         const OLD_PIECE = board.getPiece(move.newPosition);
         const EMPTY_PIECE = new Piece();
+        const IS_EN_PASSANT = Rules.isEnPassant(board, move);
 
         const HAS_MOVED = board.doMoveIfLegal(move);
 
@@ -136,6 +137,12 @@ class UserInterface {
             GOTO_SQUARE.classList.add(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
             FROM_SQUARE.classList.remove(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
             FROM_SQUARE.classList.add(`chess-piece-${this.pieceTypeToString(EMPTY_PIECE)}-${EMPTY_PIECE.color}`);
+
+            if(IS_EN_PASSANT) {
+                const CAPTURE = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.position.x}'][data-y='${move.newPosition.y}']`);
+                CAPTURE.classList.remove(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
+                CAPTURE.classList.add(`chess-piece-${this.pieceTypeToString(EMPTY_PIECE)}-${EMPTY_PIECE.color}`);
+            }
         }
 
         this.pieceSelected = false;
@@ -178,7 +185,7 @@ class UserInterface {
 
     static onClickPieceHTML(e, ui) {
         if(e) {
-            e.stopPropagation();
+            e.stopImmediatePropagation();
             e.preventDefault();
         }
 
