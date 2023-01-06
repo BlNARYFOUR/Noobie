@@ -8,6 +8,8 @@ class Rules {
         const POSSIBLE_MOVES = Rules.getPossibleMovesByPieceType(board, coordinates);
         const LEGAL_MOVES = [];
 
+        console.log(POSSIBLE_MOVES);
+
         POSSIBLE_MOVES.forEach(possibleMove => {
             if (Rules.isLegalMove(board, possibleMove)) {
                 LEGAL_MOVES.push(possibleMove);
@@ -66,7 +68,7 @@ class Rules {
 
     static doesMoveResultInCheck(board, move) {
         const NEW_BOARD = BoardFactory.createInstance(Helper.deepCopy(board.setup));
-        NEW_BOARD.move(move);
+        NEW_BOARD.doMove(move);
 
         return Rules.isCheck(NEW_BOARD);
     }

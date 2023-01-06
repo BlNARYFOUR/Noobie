@@ -32,6 +32,7 @@
     width: 100%;
     box-sizing: border-box;
     cursor: pointer;
+    position: relative;
 }
 
 .bg-black {
@@ -42,6 +43,18 @@
     background-image: url('../media/pieces.png');
     background-size: calc(40vw/8 * 5.5);
     background-repeat: no-repeat;
+}
+
+.possible-move::before {
+    position: absolute;
+    content: "";
+    width: calc((40vw/8)/2);
+    height: calc((40vw/8)/2);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(50,50,150,0.3);
+    border-radius: 50%;
 }
 
 .chess-piece-empty-black, .chess-piece-empty-white, .chess-piece-empty-null {

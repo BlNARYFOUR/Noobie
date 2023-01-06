@@ -69,9 +69,10 @@ class Move {
 }
 
 class Piece {
-    constructor(type, color = null) {
+    constructor(type = PieceType.EMPTY, color = null) {
         this.color = color;
         this.type = type;
+        this.moveCount = 0;
 
         if (type !== PieceType.EMPTY && color === null) {
             throw new Error('Color must be set if the piece type does not equal [PIECES.EMPTY]!');
@@ -84,10 +85,10 @@ class Board {
         return [
             [new Piece(PieceType.ROOK, Color.BLACK), new Piece(PieceType.KNIGHT, Color.BLACK), new Piece(PieceType.BISHOP, Color.BLACK), new Piece(PieceType.QUEEN, Color.BLACK), new Piece(PieceType.KING, Color.BLACK), new Piece(PieceType.BISHOP, Color.BLACK), new Piece(PieceType.KNIGHT, Color.BLACK), new Piece(PieceType.ROOK, Color.BLACK)],
             [new Piece(PieceType.PAWN, Color.BLACK), new Piece(PieceType.PAWN, Color.BLACK), new Piece(PieceType.PAWN, Color.BLACK), new Piece(PieceType.PAWN, Color.BLACK), new Piece(PieceType.PAWN, Color.BLACK), new Piece(PieceType.PAWN, Color.BLACK), new Piece(PieceType.PAWN, Color.BLACK), new Piece(PieceType.PAWN, Color.BLACK)],
-            [new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY)],
-            [new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY)],
-            [new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY)],
-            [new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY), new Piece(PieceType.EMPTY)],
+            [new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece()],
+            [new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece()],
+            [new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece()],
+            [new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece(), new Piece()],
             [new Piece(PieceType.PAWN, Color.WHITE), new Piece(PieceType.PAWN, Color.WHITE), new Piece(PieceType.PAWN, Color.WHITE), new Piece(PieceType.PAWN, Color.WHITE), new Piece(PieceType.PAWN, Color.WHITE), new Piece(PieceType.PAWN, Color.WHITE), new Piece(PieceType.PAWN, Color.WHITE), new Piece(PieceType.PAWN, Color.WHITE)],
             [new Piece(PieceType.ROOK, Color.WHITE), new Piece(PieceType.KNIGHT, Color.WHITE), new Piece(PieceType.BISHOP, Color.WHITE), new Piece(PieceType.QUEEN, Color.WHITE), new Piece(PieceType.KING, Color.WHITE), new Piece(PieceType.BISHOP, Color.WHITE), new Piece(PieceType.KNIGHT, Color.WHITE), new Piece(PieceType.ROOK, Color.WHITE)],
         ];
@@ -122,8 +123,9 @@ class Board {
     }
 
     doMove(move) {
+        this.getPiece(move.position).moveCount++;
         this.setup[move.newPosition.x][move.newPosition.y] = this.setup[move.position.x][move.position.y];
-        this.setup[move.position.x][move.position.y] = new Piece(PieceType.EMPTY);
+        this.setup[move.position.x][move.position.y] = new Piece();
 
         return this;
     }

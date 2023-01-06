@@ -1,6 +1,9 @@
 class UserInterface {
     constructor() {
         this.boards = [];
+        this.pieceSelected = false;
+        this.selectedPieceCoordinates = Coordinates.INVALID;
+        this.possibleMovesForSelectedPiece = [];
     }
 
     createDefaultBoard() {
@@ -37,6 +40,12 @@ class UserInterface {
         boardHTML += '</ul></li>';
 
         BOARDS_ELEMENT.innerHTML += boardHTML;
+
+        const PIECE_ELEMENTS = BOARDS_ELEMENT.querySelectorAll('.chess-piece');
+
+        PIECE_ELEMENTS.forEach(PIECE_ELEMENT => {
+            PIECE_ELEMENT.addEventListener('click', (e) => UserInterface.onClickPieceHTML(e, this));
+        });
 
         return this;
     }
@@ -101,6 +110,93 @@ class UserInterface {
                 return 'bishop';
             case PieceType.KING:
                 return 'king';
+        }
+    }
+
+    makeHtmlMove(board, move) {
+        const PIECE = board.getPiece(move.position);
+        const OLD_PIECE = board.getPiece(move.newPosition);
+        const EMPTY_PIECE = new Piece();
+
+        const HAS_MOVED = board.doMoveIfLegal(move);
+
+        if(HAS_MOVED) {
+            document.querySelectorAll(`[data-board-id='${board.id}'].chess-square.highlight-yellow`).forEach(element => {
+                element.classList.remove('highlight-yellow');
+            });
+
+            document.querySelectorAll(`[data-board-id='${board.id}'].chess-square.possible-move`).forEach(element => {
+                element.classList.remove('possible-move');
+            });
+
+            const GOTO_SQUARE = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.newPosition.x}'][data-y='${move.newPosition.y}']`);
+            const FROM_SQUARE = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.position.x}'][data-y='${move.position.y}']`);
+
+            GOTO_SQUARE.classList.remove(`chess-piece-${this.pieceTypeToString(OLD_PIECE)}-${OLD_PIECE.color}`);
+            GOTO_SQUARE.classList.add(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
+            FROM_SQUARE.classList.remove(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
+            FROM_SQUARE.classList.add(`chess-piece-${this.pieceTypeToString(EMPTY_PIECE)}-${EMPTY_PIECE.color}`);
+        }
+
+        this.pieceSelected = false;
+        this.selectedPieceCoordinates = Coordinates.INVALID;
+        this.possibleMovesForSelectedPiece = [];
+    }
+
+    showHtmlPossibleMoves(board, currentCoordinates, possibleMoves) {
+        document.querySelectorAll(`[data-board-id='${board.id}'].chess-square.highlight-yellow`).forEach(element => {
+            element.classList.remove('highlight-yellow');
+        });
+
+        if(this.selectedPieceCoordinates.equals(currentCoordinates)) {
+            this.pieceSelected = !this.pieceSelected;
+        } else {
+            document.querySelectorAll(`[data-board-id='${board.id}'].chess-square.possible-move`).forEach(element => {
+                element.classList.remove('possible-move');
+            });
+
+            if(0 < possibleMoves.length) {
+                this.pieceSelected = true;
+                document.querySelector(`[data-board-id='${board.id}'][data-x='${currentCoordinates.x}'][data-y='${currentCoordinates.y}']`).classList.add('highlight-yellow');
+            } else {
+                this.pieceSelected = false;
+            }
+        }
+
+        if(this.pieceSelected) {
+            this.selectedPieceCoordinates = currentCoordinates;
+            this.possibleMovesForSelectedPiece = possibleMoves;
+        } else {
+            this.selectedPieceCoordinates = Coordinates.INVALID;
+            this.possibleMovesForSelectedPiece = [];
+        }
+
+        possibleMoves.forEach(possibleMove => {
+            document.querySelector(`[data-board-id='${board.id}'][data-x='${possibleMove.newPosition.x}'][data-y='${possibleMove.newPosition.y}']`).classList.toggle('possible-move');
+        });
+    }
+
+    static onClickPieceHTML(e, ui) {
+        if(e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+
+        const ELEMENT = e.target;
+        const BOARD = ui.boards[ELEMENT.dataset.boardId];
+        const COORDINATES = new Coordinates(parseInt(ELEMENT.dataset.x), parseInt(ELEMENT.dataset.y));
+        const POSSIBLE_MOVES = Rules.getLegalMoves(BOARD, COORDINATES);
+        const SELECTED_MOVE = new Move(ui.selectedPieceCoordinates, COORDINATES);
+
+        if(
+            ui.pieceSelected
+            && 0 < ui.possibleMovesForSelectedPiece.filter((possibleMove) => {
+                return possibleMove.equals(SELECTED_MOVE);
+            }).length
+        ) {
+            ui.makeHtmlMove(BOARD, SELECTED_MOVE);
+        } else {
+            ui.showHtmlPossibleMoves(BOARD, COORDINATES, POSSIBLE_MOVES);
         }
     }
 }
