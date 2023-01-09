@@ -94,11 +94,15 @@ class Board {
         ];
     }
 
-    constructor(id, setup = null, turn = Color.WHITE, previousMove = new Move()) {
+    get previousMove() {
+        return (0 < this.moveHistory.length) ? this.moveHistory[this.moveHistory.length - 1] : (new Move());
+    }
+
+    constructor(id, setup = null, turn = Color.WHITE, moveHistory = []) {
         this.id = id;
         this.setup = setup;
         this.turn = turn;
-        this.previousMove = previousMove;
+        this.moveHistory = moveHistory;
     }
 
     createDefaultSetup() {
@@ -111,20 +115,29 @@ class Board {
     }
 
     findKingCoordinates(color) {
-        this.setup.forEach((column, x) => {
-            column.forEach((piece, y) => {
-                if (piece.type === PieceType.KING && piece.color === color) {
-                    return new Coordinates(x, y);
+        for(let x = 0; x < 8; x++) {
+            for(let y = 0; y < 8; y++) {
+                const COORDINATES = new Coordinates(x, y)
+                const PIECE = this.getPiece(COORDINATES);
+
+                if (PIECE.type === PieceType.KING && PIECE.color === color) {
+                    return COORDINATES;
                 }
-            });
-        });
+            }
+        }
 
         return Coordinates.INVALID;
     }
 
     doMove(move) {
-        if(Rules.isEnPassant(this, move)) {
+        if (Rules.isEnPassant(this, move)) {
             this.setup[move.position.x][move.newPosition.y] = new Piece();
+        } else if (Rules.isShortCastle(this, move)) {
+            this.setup[move.newPosition.x][move.newPosition.y + 1] = new Piece();
+            this.setup[move.newPosition.x][move.newPosition.y - 1] = new Piece(PieceType.ROOK, this.turn);
+        } else if (Rules.isLongCastle(this, move)) {
+            this.setup[move.newPosition.x][move.newPosition.y - 2] = new Piece();
+            this.setup[move.newPosition.x][move.newPosition.y + 1] = new Piece(PieceType.ROOK, this.turn);
         }
 
         this.getPiece(move.position).moveCount++;
@@ -140,8 +153,8 @@ class Board {
         return this;
     }
 
-    setPreviousMove(move) {
-        this.previousMove = move;
+    pushToMoveHistory(move) {
+        this.moveHistory.push(move);
 
         return this;
     }
@@ -150,7 +163,7 @@ class Board {
         const isLegal = Rules.isLegalMove(this, move);
 
         if(isLegal) {
-            this.doMove(move).switchTurn().setPreviousMove(move);
+            this.doMove(move).switchTurn().pushToMoveHistory(move);
 
             return true;
         }
@@ -164,8 +177,8 @@ class Board {
 const BoardFactory = (function () {
     let nextId = 0;
 
-    function createInstance(setup = null, turn = Color.WHITE) {
-        return new Board(nextId++, setup, turn);
+    function createInstance(setup = null, turn = Color.WHITE, moveHistory = []) {
+        return new Board(nextId++, setup, turn, moveHistory);
     }
 
     function createDefaultInstance() {

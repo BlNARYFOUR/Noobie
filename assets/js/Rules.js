@@ -1,7 +1,7 @@
 class Rules {
     static isLegalMove(board, move) {
         return Rules.isLegalMoveByPieceType(board, move)
-            && !Rules.doesMoveResultInCheck(board, move);
+            && !Rules.doesMoveResultInCheck(board, move, board.turn);
     }
 
     static getLegalMoves(board, coordinates) {
@@ -31,9 +31,15 @@ class Rules {
                 return Rules.getPossibleBishopMoves(coordinates);
             case PieceType.QUEEN:
                 return Rules.getPossibleQueenMoves(coordinates);
+            case PieceType.KING:
+                return Rules.getPossibleKingMoves(coordinates);
             default:
                 return [];
         }
+    }
+
+    static isRepetitionDraw(board) {
+        // todo: if an exact same position occurs 3 times
     }
 
     static isLegalMoveByPieceType(board, move) {
@@ -58,6 +64,8 @@ class Rules {
                 return Rules.isLegalBishopMove(board, move);
             case PieceType.QUEEN:
                 return Rules.isLegalQueenMove(board, move);
+            case PieceType.KING:
+                return Rules.isLegalKingMove(board, move);
             default:
                 return true;
         }
@@ -74,33 +82,40 @@ class Rules {
         return NEW_PIECE.type !== PieceType.EMPTY && PIECE.color === NEW_PIECE.color;
     }
 
-    static doesMoveResultInCheck(board, move) {
-        const NEW_BOARD = BoardFactory.createInstance(Helper.deepCopy(board.setup), board.turn);
-        NEW_BOARD.doMove(move);
+    static doesMoveResultInCheck(board, move, color) {
+        const NEW_BOARD = BoardFactory.createInstance(Helper.deepCopy(board.setup), board.turn, [...board.moveHistory]);
+        NEW_BOARD.doMove(move).switchTurn().pushToMoveHistory(move);
 
-        return Rules.isCheck(NEW_BOARD);
+        return Rules.isCheck(NEW_BOARD, color);
     }
 
-    static isCheck(board) {
-        const KING_COORDINATES = board.findKingCoordinates(board.turn);
+    static isCheck(board, color) {
+        const KING_COORDINATES = board.findKingCoordinates(color);
+        let isCheck = false;
 
         if (KING_COORDINATES.isInvalid()) {
             return false;
         }
 
-        // todo: find all opposite color pieces and see if capturing the king is legal
+        board.setup.forEach((column, x) => {
+            column.forEach((piece, y) => {
+                if(Rules.isLegalMoveByPieceType(board, new Move(new Coordinates(x, y), KING_COORDINATES))) {
+                    isCheck = true;
+                }
+            });
+        });
 
-        return false;
+        return isCheck;
     }
 
     static getPossiblePawnMoves(coordinates) {
         return [
-            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y - 0)),   // 1 up
-            new Move(coordinates, new Coordinates(coordinates.x - 2, coordinates.y - 0)),   // 2 up
+            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 0)),   // 1 up
+            new Move(coordinates, new Coordinates(coordinates.x - 2, coordinates.y + 0)),   // 2 up
             new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y - 1)),   // 1 up, 1 left
             new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 1)),   // 1 up, 1 right
-            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y - 0)),   // 1 down
-            new Move(coordinates, new Coordinates(coordinates.x + 2, coordinates.y - 0)),   // 2 down
+            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 0)),   // 1 down
+            new Move(coordinates, new Coordinates(coordinates.x + 2, coordinates.y + 0)),   // 2 down
             new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y - 1)),   // 1 down, 1 left
             new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 1)),   // 1 down, 1 right
         ];
@@ -402,5 +417,78 @@ class Rules {
 
     static isLegalQueenMove(board, move) {
         return Rules.isLegalRookMove(board, move) || Rules.isLegalBishopMove(board, move);
+    }
+
+    static getPossibleKingMoves(coordinates) {
+        return [
+            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y - 1)),   // 1 up, 1 left
+            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 0)),   // 1 up
+            new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 1)),   // 1 up, 1 right
+            new Move(coordinates, new Coordinates(coordinates.x + 0, coordinates.y + 1)),   // 1 right
+            new Move(coordinates, new Coordinates(coordinates.x + 0, coordinates.y + 2)),   // 2 right
+            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 1)),   // 1 down, 1 right
+            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 0)),   // 1 down
+            new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y - 1)),   // 1 down, 1 left
+            new Move(coordinates, new Coordinates(coordinates.x + 0, coordinates.y - 1)),   // 1 left
+            new Move(coordinates, new Coordinates(coordinates.x + 0, coordinates.y - 2)),   // 2 left
+        ];
+    }
+
+    static isShortCastle(board, move) {
+        const ROOK_SQUARE = board.turn === Color.WHITE ? board.getPiece(new Coordinates(7, 7)) : board.getPiece(new Coordinates(0, 7));
+
+        return board.getPiece(move.position).type === PieceType.KING
+            && board.getPiece(move.position).moveCount === 0
+            && board.getPiece(move.position).color === board.turn
+            && move.position.x === move.newPosition.x
+            && (move.position.y + 2) === move.newPosition.y
+            && ROOK_SQUARE.type === PieceType.ROOK
+            && ROOK_SQUARE.moveCount === 0
+            && ROOK_SQUARE.color === board.turn
+            && board.getPiece(new Coordinates(move.position.x, move.position.y + 1)).type === PieceType.EMPTY
+            && board.getPiece(new Coordinates(move.position.x, move.position.y + 2)).type === PieceType.EMPTY
+            && !Rules.doesMoveResultInCheck(board, new Move(move.position, new Coordinates(move.position.x, move.position.y + 1)), board.turn);
+    }
+
+    static isLongCastle(board, move) {
+        const ROOK_SQUARE = board.turn === Color.WHITE ? board.getPiece(new Coordinates(7, 0)) : board.getPiece(new Coordinates(0, 0));
+
+        return board.getPiece(move.position).type === PieceType.KING
+            && board.getPiece(move.position).moveCount === 0
+            && board.getPiece(move.position).color === board.turn
+            && move.position.x === move.newPosition.x
+            && (move.position.y - 2) === move.newPosition.y
+            && ROOK_SQUARE.type === PieceType.ROOK
+            && ROOK_SQUARE.moveCount === 0
+            && ROOK_SQUARE.color === board.turn
+            && board.getPiece(new Coordinates(move.position.x, move.position.y - 1)).type === PieceType.EMPTY
+            && board.getPiece(new Coordinates(move.position.x, move.position.y - 2)).type === PieceType.EMPTY
+            && !Rules.doesMoveResultInCheck(board, new Move(move.position, new Coordinates(move.position.x, move.position.y - 1)), board.turn);
+    }
+
+    static isLegalKingMove(board, move) {
+        let possibleMoves = Rules.getPossibleKingMoves(move.position);
+
+        if (!Rules.isShortCastle(board, move)) {
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return possibleMove.newPosition.y < (possibleMove.position.y + 2);
+            });
+        }
+
+        if(!Rules.isLongCastle(board, move)) {
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return (possibleMove.position.y - 2) < possibleMove.newPosition.y;
+            });
+        }
+
+        let isLegal = false;
+
+        possibleMoves.forEach(possibleMove => {
+            if (possibleMove.newPosition.equals(move.newPosition)) {
+                isLegal = true;
+            }
+        });
+
+        return isLegal;
     }
 }

@@ -117,7 +117,10 @@ class UserInterface {
         const PIECE = board.getPiece(move.position);
         const OLD_PIECE = board.getPiece(move.newPosition);
         const EMPTY_PIECE = new Piece();
+
         const IS_EN_PASSANT = Rules.isEnPassant(board, move);
+        const IS_SHORT_CASTLE = Rules.isShortCastle(board, move);
+        const IS_LONG_CASTLE = Rules.isLongCastle(board, move);
 
         const HAS_MOVED = board.doMoveIfLegal(move);
 
@@ -138,16 +141,34 @@ class UserInterface {
             FROM_SQUARE.classList.remove(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
             FROM_SQUARE.classList.add(`chess-piece-${this.pieceTypeToString(EMPTY_PIECE)}-${EMPTY_PIECE.color}`);
 
-            if(IS_EN_PASSANT) {
+            if (IS_EN_PASSANT) {
                 const CAPTURE = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.position.x}'][data-y='${move.newPosition.y}']`);
                 CAPTURE.classList.remove(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
                 CAPTURE.classList.add(`chess-piece-${this.pieceTypeToString(EMPTY_PIECE)}-${EMPTY_PIECE.color}`);
+            } else if (IS_SHORT_CASTLE) {
+                const OLD_ROOK = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.newPosition.x}'][data-y='${move.newPosition.y + 1}']`);
+                const NEW_ROOK = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.newPosition.x}'][data-y='${move.newPosition.y - 1}']`);
+                this.showHtmlCastleRookMove(OLD_ROOK, NEW_ROOK, PIECE.color);
+            } else if (IS_LONG_CASTLE) {
+                const OLD_ROOK = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.newPosition.x}'][data-y='${move.newPosition.y - 2}']`);
+                const NEW_ROOK = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.newPosition.x}'][data-y='${move.newPosition.y + 1}']`);
+                this.showHtmlCastleRookMove(OLD_ROOK, NEW_ROOK, PIECE.color);
             }
         }
 
         this.pieceSelected = false;
         this.selectedPieceCoordinates = Coordinates.INVALID;
         this.possibleMovesForSelectedPiece = [];
+    }
+
+    showHtmlCastleRookMove(oldRookElement, newRookElement, color) {
+        const EMPTY_PIECE = new Piece();
+        const ROOK = new Piece(PieceType.ROOK, color);
+
+        oldRookElement.classList.remove(`chess-piece-${this.pieceTypeToString(ROOK)}-${ROOK.color}`);
+        oldRookElement.classList.add(`chess-piece-${this.pieceTypeToString(EMPTY_PIECE)}-${EMPTY_PIECE.color}`);
+        newRookElement.classList.remove(`chess-piece-${this.pieceTypeToString(EMPTY_PIECE)}-${EMPTY_PIECE.color}`);
+        newRookElement.classList.add(`chess-piece-${this.pieceTypeToString(ROOK)}-${ROOK.color}`);
     }
 
     showHtmlPossibleMoves(board, currentCoordinates, possibleMoves) {
