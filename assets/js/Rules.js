@@ -27,6 +27,10 @@ class Rules {
                 return Rules.getPossibleRookMoves(coordinates);
             case PieceType.KNIGHT:
                 return Rules.getPossibleKnightMoves(coordinates);
+            case PieceType.BISHOP:
+                return Rules.getPossibleBishopMoves(coordinates);
+            case PieceType.QUEEN:
+                return Rules.getPossibleQueenMoves(coordinates);
             default:
                 return [];
         }
@@ -117,8 +121,6 @@ class Rules {
     }
 
     static isLegalPawnMove(board, move) {
-        console.log(move);
-
         const PAWN = board.getPiece(move.position);
         let possibleMoves = Rules.getPossiblePawnMoves(move.position);
         let relativeTop = -1;
@@ -167,15 +169,11 @@ class Rules {
 
         let isLegal = false;
 
-        console.log('Legal moves:', possibleMoves);
-
         possibleMoves.forEach(possibleMove => {
             if (possibleMove.newPosition.equals(move.newPosition)) {
                 isLegal = true;
             }
         });
-
-        console.log('Is legal:', isLegal);
 
         return isLegal;
     }
@@ -260,7 +258,134 @@ class Rules {
         return isLegal;
     }
 
+    static getPossibleBishopMoves(coordinates) {
+        let res = [], x = coordinates.x, y = coordinates.y;
+
+        // top, left
+        do {
+            x--;
+            y--;
+
+            if(0 <= x && 0 <= y) {
+                res.push(new Move(coordinates, new Coordinates(x, y)));
+            }
+        } while (0 < x && 0 < y);
+
+        x = coordinates.x;
+        y = coordinates.y;
+
+        // top, right
+        do {
+            x--;
+            y++;
+
+            if(0 <= x && y <= 7) {
+                res.push(new Move(coordinates, new Coordinates(x, y)));
+            }
+        } while (0 < x && y < 7);
+
+        x = coordinates.x;
+        y = coordinates.y;
+
+        // bottom, left
+        do {
+            x++;
+            y--;
+
+            if(x <= 7 && 0 <= y) {
+                res.push(new Move(coordinates, new Coordinates(x, y)));
+            }
+        } while (x < 7 && 0 < y);
+
+        x = coordinates.x;
+        y = coordinates.y;
+
+        // bottom, right
+        do {
+            x++;
+            y++;
+
+            if(x <= 7 && y <= 7) {
+                res.push(new Move(coordinates, new Coordinates(x, y)));
+            }
+        } while (x < 7 && y < 7);
+
+        return res;
+    }
+
     static isLegalBishopMove(board, move) {
-        // todo
+        let possibleMoves = [], x = move.position.x, y = move.position.y;
+
+        // top, left
+        do {
+            x--;
+            y--;
+
+            if(0 <= x && 0 <= y && (
+                board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
+                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+            )) {
+                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+            }
+        } while (0 < x && 0 < y && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
+
+        x = move.position.x;
+        y = move.position.y;
+
+        // top, right
+        do {
+            x--;
+            y++;
+
+            if(0 <= x && y <= 7 && (
+                board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
+                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+            )) {
+                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+            }
+        } while (0 < x && y < 7 && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
+
+        x = move.position.x;
+        y = move.position.y;
+
+        // bottom, left
+        do {
+            x++;
+            y--;
+
+            if(x <= 7 && 0 <= y && (
+                board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
+                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+            )) {
+                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+            }
+        } while (x < 7 && 0 < y && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
+
+        x = move.position.x;
+        y = move.position.y;
+
+        // bottom, right
+        do {
+            x++;
+            y++;
+
+            if(
+                x <= 7 && y <= 7 && (
+                board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
+                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+            )) {
+                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+            }
+        } while (x < 7 && y < 7 && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
+
+        let isLegal = false;
+
+        possibleMoves.forEach(possibleMove => {
+            if (possibleMove.newPosition.equals(move.newPosition)) {
+                isLegal = true;
+            }
+        });
+
+        return isLegal;
     }
 }
