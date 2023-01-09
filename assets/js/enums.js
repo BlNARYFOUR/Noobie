@@ -124,7 +124,6 @@ class Board {
 
     doMove(move) {
         if(Rules.isEnPassant(this, move)) {
-            console.log(move.position.x, move.newPosition.y);
             this.setup[move.position.x][move.newPosition.y] = new Piece();
         }
 

@@ -56,6 +56,8 @@ class Rules {
                 return Rules.isLegalKnightMove(board, move);
             case PieceType.BISHOP:
                 return Rules.isLegalBishopMove(board, move);
+            case PieceType.QUEEN:
+                return Rules.isLegalQueenMove(board, move);
             default:
                 return true;
         }
@@ -387,5 +389,18 @@ class Rules {
         });
 
         return isLegal;
+    }
+
+    static getPossibleQueenMoves(coordinates) {
+        let res = [];
+
+        res.push(...Rules.getPossibleRookMoves(coordinates));
+        res.push(...Rules.getPossibleBishopMoves(coordinates));
+
+        return res;
+    }
+
+    static isLegalQueenMove(board, move) {
+        return Rules.isLegalRookMove(board, move) || Rules.isLegalBishopMove(board, move);
     }
 }

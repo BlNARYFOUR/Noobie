@@ -39,6 +39,14 @@
     background-color: #7c7c7c;
 }
 
+.bg-white.highlight-yellow {
+    background-color: rgb(255, 255, 197);
+}
+
+.bg-black.highlight-yellow {
+    background-color: rgb(163, 163, 105);
+}
+
 .chess-piece {
     background-image: url('../media/pieces.png');
     background-size: calc(40vw/8 * 5.5);
