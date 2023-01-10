@@ -14,7 +14,7 @@ class ObjectFixer {
     static fixBoardSetup(setup) {
         for(let x = 0; x < setup.length; x++) {
             for(let y = 0; y < setup[x].length; y++) {
-                setup[x][y] = new Piece(this.fixPieceType(setup[x][y].type), this.fixColor(setup[x][y].color));
+                setup[x][y] = new Piece(this.fixPieceType(setup[x][y].type), this.fixColor(setup[x][y].color), setup[x][y].moveCount);
             }
         }
 

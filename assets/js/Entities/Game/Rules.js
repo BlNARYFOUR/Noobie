@@ -42,10 +42,10 @@ class Rules {
         // todo: if an exact same position occurs 3 times
     }
 
-    static isLegalMoveByPieceType(board, move) {
+    static isLegalMoveByPieceType(board, move, color = null) {
         if (
             move.isInvalid()
-            || !Rules.isFriendlyPiece(board, move.position)
+            || !Rules.isFriendlyPiece(board, move.position, color)
             || Rules.isMoveToFriendlyField(board, move)
         ) {
             return false;
@@ -71,8 +71,12 @@ class Rules {
         }
     }
 
-    static isFriendlyPiece(board, coordinates) {
-        return board.getPiece(coordinates).color === board.turn;
+    static isFriendlyPiece(board, coordinates, color = null) {
+        if(color === null) {
+            color = board.turn;
+        }
+
+        return board.getPiece(coordinates).color === color;
     }
 
     static isMoveToFriendlyField(board, move) {
@@ -83,7 +87,7 @@ class Rules {
     }
 
     static doesMoveResultInCheck(board, move, color) {
-        const NEW_BOARD = BoardFactory.getInstance().createBoard(Helper.deepCopy(board.setup), board.turn, [...board.moveHistory]);
+        const NEW_BOARD = BoardFactory.getInstance().createBoard(board.setup, board.turn, [...board.moveHistory]);
         NEW_BOARD.doMove(move).switchTurn().pushToMoveHistory(move);
 
         return Rules.isCheck(NEW_BOARD, color);
@@ -99,13 +103,37 @@ class Rules {
 
         board.setup.forEach((column, x) => {
             column.forEach((piece, y) => {
-                if(Rules.isLegalMoveByPieceType(board, new Move(new Coordinates(x, y), KING_COORDINATES))) {
+                if(Rules.isLegalMoveByPieceType(
+                    board,
+                    new Move(new Coordinates(x, y), KING_COORDINATES),
+                    (color === Color.WHITE ? Color.BLACK : Color.WHITE)
+                )) {
                     isCheck = true;
                 }
             });
         });
 
         return isCheck;
+    }
+
+    static isNoMovePossible(board) {
+        for(let x = 0; x < board.setup.length; x++) {
+            for(let y = 0; y < board.setup[x].length; y++) {
+                if(0 < Rules.getLegalMoves(board, new Coordinates(x, y)).length) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    static isStaleMate(board) {
+        return !this.isCheck(board, board.turn) && this.isNoMovePossible(board);
+    }
+
+    static isCheckMate(board) {
+        return this.isCheck(board, board.turn) && this.isNoMovePossible(board);
     }
 
     static getPossiblePawnMoves(coordinates) {
@@ -139,6 +167,7 @@ class Rules {
 
     static isLegalPawnMove(board, move) {
         const PAWN = board.getPiece(move.position);
+        console.log(PAWN, move);
         let possibleMoves = Rules.getPossiblePawnMoves(move.position);
         let relativeTop = -1;
 
@@ -146,6 +175,8 @@ class Rules {
         possibleMoves = possibleMoves.filter(possibleMove => {
             return !possibleMove.isInvalid();
         });
+
+        console.log(possibleMoves);
 
         // Filter on pawn color
         if(PAWN.color === Color.WHITE) {
@@ -159,18 +190,23 @@ class Rules {
             });
         }
 
+        const TWO_UP_COORDINATES = new Coordinates(move.position.x + relativeTop * 2, move.position.y);
+
         // Filter if two up is not possible
         if(
-            0 < PAWN.moveCount
-            || board.getPiece(new Coordinates(move.position.x + relativeTop * 2, move.position.y)).type !== PieceType.EMPTY
+             0 < PAWN.moveCount
+            || TWO_UP_COORDINATES.isInvalid()
+            || board.getPiece(TWO_UP_COORDINATES).type !== PieceType.EMPTY
         ) {
             possibleMoves = possibleMoves.filter(possibleMove => {
                 return possibleMove.newPosition.x !== (possibleMove.position.x + relativeTop * 2);
             });
         }
 
+        const ONE_UP_COORDINATES = new Coordinates(move.position.x + relativeTop, move.position.y);
+
         // Filter if one up is not possible
-        if(board.getPiece(new Coordinates(move.position.x + relativeTop, move.position.y)).type !== PieceType.EMPTY) {
+        if(ONE_UP_COORDINATES.isInvalid() || board.getPiece(ONE_UP_COORDINATES).type !== PieceType.EMPTY) {
             possibleMoves = possibleMoves.filter(possibleMove => {
                 return possibleMove.newPosition.x !== (possibleMove.position.x + relativeTop)
                     || possibleMove.newPosition.y !== possibleMove.position.y;
@@ -338,11 +374,13 @@ class Rules {
             x--;
             y--;
 
+            const possibleMove = new Move(move.position, new Coordinates(x, y));
+
             if(0 <= x && 0 <= y && (
-                board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
-                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+                board.getPiece(possibleMove.newPosition).type === PieceType.EMPTY
+                || !Rules.isMoveToFriendlyField(board, possibleMove)
             )) {
-                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+                possibleMoves.push(possibleMove);
             }
         } while (0 < x && 0 < y && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
 
@@ -354,11 +392,13 @@ class Rules {
             x--;
             y++;
 
+            const possibleMove = new Move(move.position, new Coordinates(x, y));
+
             if(0 <= x && y <= 7 && (
                 board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
-                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+                || !Rules.isMoveToFriendlyField(board, possibleMove)
             )) {
-                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+                possibleMoves.push(possibleMove);
             }
         } while (0 < x && y < 7 && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
 
@@ -370,11 +410,13 @@ class Rules {
             x++;
             y--;
 
+            const possibleMove = new Move(move.position, new Coordinates(x, y));
+
             if(x <= 7 && 0 <= y && (
                 board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
-                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+                || !Rules.isMoveToFriendlyField(board, possibleMove)
             )) {
-                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+                possibleMoves.push(possibleMove);
             }
         } while (x < 7 && 0 < y && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
 
@@ -386,12 +428,13 @@ class Rules {
             x++;
             y++;
 
-            if(
-                x <= 7 && y <= 7 && (
+            const possibleMove = new Move(move.position, new Coordinates(x, y));
+
+            if(x <= 7 && y <= 7 && (
                 board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY
-                || !Rules.isFriendlyPiece(board, new Coordinates(x, y))
+                || !Rules.isMoveToFriendlyField(board, possibleMove)
             )) {
-                possibleMoves.push(new Move(move.position, new Coordinates(x, y)));
+                possibleMoves.push(possibleMove);
             }
         } while (x < 7 && y < 7 && board.getPiece(new Coordinates(x, y)).type === PieceType.EMPTY);
 
