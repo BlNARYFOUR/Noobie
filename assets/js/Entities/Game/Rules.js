@@ -167,7 +167,6 @@ class Rules {
 
     static isLegalPawnMove(board, move) {
         const PAWN = board.getPiece(move.position);
-        console.log(PAWN, move);
         let possibleMoves = Rules.getPossiblePawnMoves(move.position);
         let relativeTop = -1;
 
@@ -175,8 +174,6 @@ class Rules {
         possibleMoves = possibleMoves.filter(possibleMove => {
             return !possibleMove.isInvalid();
         });
-
-        console.log(possibleMoves);
 
         // Filter on pawn color
         if(PAWN.color === Color.WHITE) {

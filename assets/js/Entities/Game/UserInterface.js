@@ -19,7 +19,7 @@ class UserInterface {
         return this;
     }
 
-    showBoard(index) {
+    showBoard(index, clickOnWhite = true, clickOnBlack = true) {
         const BOARDS_ELEMENT = document.querySelector('#boards');
         let boardHTML = `<li id="board-${index}-wrapper"><ul id="board-${index}" class="chess-board">`, squareColor = Color.WHITE;
 
@@ -27,7 +27,7 @@ class UserInterface {
             boardHTML += `<li data-board-id="${index}"><ul data-board-id="${index}" class="chess-column">`;
 
             column.forEach((piece, y) => {
-                boardHTML += `<li data-board-id="${index}" data-x="${x}" data-y="${y}" class="chess-square bg-${squareColor} chess-piece chess-piece-${this.pieceTypeToString(piece)}-${piece.color}"></li>`;
+                boardHTML += `<li data-board-id="${index}" data-x="${x}" data-y="${y}" data-ui-click-white="${clickOnWhite}" data-ui-click-black="${clickOnBlack}" class="chess-square bg-${squareColor} chess-piece chess-piece-${this.pieceTypeToString(piece)}-${piece.color}"></li>`;
 
                 squareColor = squareColor === Color.WHITE ? Color.BLACK : Color.WHITE;
             });
@@ -41,7 +41,7 @@ class UserInterface {
 
         BOARDS_ELEMENT.innerHTML += boardHTML;
 
-        const PIECE_ELEMENTS = BOARDS_ELEMENT.querySelectorAll('.chess-piece');
+        const PIECE_ELEMENTS = BOARDS_ELEMENT.querySelectorAll(`.chess-piece`);
 
         PIECE_ELEMENTS.forEach(PIECE_ELEMENT => {
             PIECE_ELEMENT.addEventListener('click', (e) => UserInterface.onClickPieceHTML(e, this));
@@ -215,6 +215,14 @@ class UserInterface {
         const COORDINATES = new Coordinates(parseInt(ELEMENT.dataset.x), parseInt(ELEMENT.dataset.y));
         const POSSIBLE_MOVES = Rules.getLegalMoves(BOARD, COORDINATES);
         const SELECTED_MOVE = new Move(ui.selectedPieceCoordinates, COORDINATES);
+
+        if(ELEMENT.dataset.uiClickWhite !== 'true' && BOARD.getPiece(COORDINATES).color === Color.WHITE) {
+            return;
+        }
+
+        if(ELEMENT.dataset.uiClickBlack !== 'true' && BOARD.getPiece(COORDINATES).color === Color.BLACK) {
+            return;
+        }
 
         if(
             ui.pieceSelected
