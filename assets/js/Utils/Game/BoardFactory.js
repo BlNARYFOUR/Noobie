@@ -14,7 +14,7 @@ class BoardFactory {
         BoardFactory.#instance = this;
     }
 
-    createBoard(setup = null, turn = Color.WHITE, moveHistory = []) {
+    createBoard(setup = [], turn = Color.WHITE, moveHistory = []) {
         return new Board(this.nextId++, setup, turn, moveHistory);
     }
 

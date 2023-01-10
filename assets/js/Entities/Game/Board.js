@@ -16,15 +16,18 @@ class Board {
         return (0 < this.moveHistory.length) ? this.moveHistory[this.moveHistory.length - 1] : (new Move());
     }
 
-    constructor(id, setup = null, turn = Color.WHITE, moveHistory = []) {
+    constructor(id, setup = [], turn = Color.WHITE, moveHistory = []) {
         this.id = id;
-        this.setup = setup;
+        this.setup = Helper.deepCopy(setup);
         this.turn = turn;
         this.moveHistory = moveHistory;
+
+        ObjectFixer.fixBoardSetup(this.setup);
     }
 
     createDefaultSetup() {
         this.setup = Helper.deepCopy(Board.DEFAULT_BOARD_SETUP);
+        ObjectFixer.fixBoardSetup(this.setup);
         return this;
     }
 
