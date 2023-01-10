@@ -38,7 +38,7 @@ class Rules {
         }
     }
 
-    static isRepetitionDraw(board) {
+    static isThreefoldRepetitionDraw(board) {
         // todo: if an exact same position occurs 3 times
     }
 
@@ -83,7 +83,7 @@ class Rules {
     }
 
     static doesMoveResultInCheck(board, move, color) {
-        const NEW_BOARD = BoardFactory.createInstance(Helper.deepCopy(board.setup), board.turn, [...board.moveHistory]);
+        const NEW_BOARD = BoardFactory.getInstance().createBoard(Helper.deepCopy(board.setup), board.turn, [...board.moveHistory]);
         NEW_BOARD.doMove(move).switchTurn().pushToMoveHistory(move);
 
         return Rules.isCheck(NEW_BOARD, color);

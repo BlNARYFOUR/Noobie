@@ -7,7 +7,7 @@ class UserInterface {
     }
 
     createDefaultBoard() {
-        const BOARD = BoardFactory.createDefaultInstance();
+        const BOARD = BoardFactory.getInstance().createDefaultBoard();
         this.boards[BOARD.id] = BOARD;
 
         return BOARD.id;
