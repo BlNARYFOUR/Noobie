@@ -1,14 +1,23 @@
 class UserInterface {
     constructor() {
         this.boards = [];
-        this.pieceSelected = false;
-        this.selectedPieceCoordinates = Coordinates.INVALID;
+        this.turn = [];
+        this.awaitsPawnPromotion = [];
+        this.selectedPawnPromotion = [];
+        this.pieceSelected = [];
+        this.selectedPieceCoordinates = [];
         this.possibleMovesForSelectedPiece = [];
     }
 
     createDefaultBoard() {
         const BOARD = BoardFactory.getInstance().createDefaultBoard();
         this.boards[BOARD.id] = BOARD;
+        this.turn[BOARD.id] = BOARD.turn;
+        this.awaitsPawnPromotion[BOARD.id] = false;
+        this.selectedPawnPromotion[BOARD.id] = PieceType.QUEEN;
+        this.pieceSelected[BOARD.id] = false;
+        this.selectedPieceCoordinates[BOARD.id] = Coordinates.INVALID;
+        this.possibleMovesForSelectedPiece[BOARD.id] = [];
 
         return BOARD.id;
     }
@@ -113,7 +122,7 @@ class UserInterface {
         }
     }
 
-    makeHtmlMove(board, move) {
+    async makeHtmlMove(board, move) {
         const PIECE = board.getPiece(move.position);
         const OLD_PIECE = board.getPiece(move.newPosition);
         const EMPTY_PIECE = new Piece();
@@ -121,6 +130,13 @@ class UserInterface {
         const IS_EN_PASSANT = Rules.isEnPassant(board, move);
         const IS_SHORT_CASTLE = Rules.isShortCastle(board, move);
         const IS_LONG_CASTLE = Rules.isLongCastle(board, move);
+        const IS_PAWN_PROMOTION = Rules.isPawnPromotion(board, move);
+
+        if(IS_PAWN_PROMOTION) {
+            // todo show pawn promotion options and await.
+            await this.showPawnPromotionAndAwaitSelection(board);
+            move.promoteToPieceType = this.selectedPawnPromotion[board.id];
+        }
 
         const HAS_MOVED = board.doMoveIfLegal(move);
 
@@ -153,12 +169,35 @@ class UserInterface {
                 const OLD_ROOK = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.newPosition.x}'][data-y='${move.newPosition.y - 2}']`);
                 const NEW_ROOK = document.querySelector(`[data-board-id='${board.id}'][data-x='${move.newPosition.x}'][data-y='${move.newPosition.y + 1}']`);
                 this.showHtmlCastleRookMove(OLD_ROOK, NEW_ROOK, PIECE.color);
+            } else if (IS_PAWN_PROMOTION) {
+                GOTO_SQUARE.classList.remove(`chess-piece-${this.pieceTypeToString(PIECE)}-${PIECE.color}`);
+                GOTO_SQUARE.classList.add(`chess-piece-${this.pieceTypeToString(new Piece(move.promoteToPieceType, PIECE.color))}-${PIECE.color}`);
             }
         }
 
-        this.pieceSelected = false;
-        this.selectedPieceCoordinates = Coordinates.INVALID;
-        this.possibleMovesForSelectedPiece = [];
+        this.pieceSelected[board.id] = false;
+        this.selectedPieceCoordinates[board.id] = Coordinates.INVALID;
+        this.possibleMovesForSelectedPiece[board.id] = [];
+    }
+
+    async showPawnPromotionAndAwaitSelection(board) {
+        this.awaitsPawnPromotion[board.id] = true;
+        console.log('Waiting...');
+
+        return new Promise((resolve) => {
+            const waitForSelection = () => {
+                setTimeout(() => {
+                    if (this.awaitsPawnPromotion[board.id]) {
+                        waitForSelection();
+                    } else {
+                        console.log('Resolving!');
+                        resolve();
+                    }
+                }, 100);
+            }
+
+            waitForSelection();
+        });
     }
 
     showHtmlCastleRookMove(oldRookElement, newRookElement, color) {
@@ -172,31 +211,33 @@ class UserInterface {
     }
 
     showHtmlPossibleMoves(board, currentCoordinates, possibleMoves) {
+        console.log(possibleMoves);
+
         document.querySelectorAll(`[data-board-id='${board.id}'].chess-square.highlight-yellow`).forEach(element => {
             element.classList.remove('highlight-yellow');
         });
 
-        if(this.selectedPieceCoordinates.equals(currentCoordinates)) {
-            this.pieceSelected = !this.pieceSelected;
+        if(this.selectedPieceCoordinates[board.id].equals(currentCoordinates)) {
+            this.pieceSelected[board.id] = !this.pieceSelected[board.id];
         } else {
             document.querySelectorAll(`[data-board-id='${board.id}'].chess-square.possible-move`).forEach(element => {
                 element.classList.remove('possible-move');
             });
 
             if(0 < possibleMoves.length) {
-                this.pieceSelected = true;
+                this.pieceSelected[board.id] = true;
                 document.querySelector(`[data-board-id='${board.id}'][data-x='${currentCoordinates.x}'][data-y='${currentCoordinates.y}']`).classList.add('highlight-yellow');
             } else {
-                this.pieceSelected = false;
+                this.pieceSelected[board.id] = false;
             }
         }
 
-        if(this.pieceSelected) {
-            this.selectedPieceCoordinates = currentCoordinates;
-            this.possibleMovesForSelectedPiece = possibleMoves;
+        if(this.pieceSelected[board.id]) {
+            this.selectedPieceCoordinates[board.id] = currentCoordinates;
+            this.possibleMovesForSelectedPiece[board.id] = possibleMoves;
         } else {
-            this.selectedPieceCoordinates = Coordinates.INVALID;
-            this.possibleMovesForSelectedPiece = [];
+            this.selectedPieceCoordinates[board.id] = Coordinates.INVALID;
+            this.possibleMovesForSelectedPiece[board.id] = [];
         }
 
         possibleMoves.forEach(possibleMove => {
@@ -214,25 +255,42 @@ class UserInterface {
         const BOARD = ui.boards[ELEMENT.dataset.boardId];
         const COORDINATES = new Coordinates(parseInt(ELEMENT.dataset.x), parseInt(ELEMENT.dataset.y));
         const POSSIBLE_MOVES = Rules.getLegalMoves(BOARD, COORDINATES);
-        const SELECTED_MOVE = new Move(ui.selectedPieceCoordinates, COORDINATES);
+        const SELECTED_MOVE = new Move(ui.selectedPieceCoordinates[BOARD.id], COORDINATES);
 
-        if(ELEMENT.dataset.uiClickWhite !== 'true' && BOARD.getPiece(COORDINATES).color === Color.WHITE) {
+        if (ELEMENT.dataset.uiClickWhite !== 'true' && BOARD.getPiece(COORDINATES).color === Color.WHITE) {
             return;
         }
 
-        if(ELEMENT.dataset.uiClickBlack !== 'true' && BOARD.getPiece(COORDINATES).color === Color.BLACK) {
+        if (ELEMENT.dataset.uiClickBlack !== 'true' && BOARD.getPiece(COORDINATES).color === Color.BLACK) {
             return;
         }
 
-        if(
-            ui.pieceSelected
-            && 0 < ui.possibleMovesForSelectedPiece.filter((possibleMove) => {
-                return possibleMove.equals(SELECTED_MOVE);
+        if (
+            ui.pieceSelected[BOARD.id]
+            && 0 < ui.possibleMovesForSelectedPiece[BOARD.id].filter((possibleMove) => {
+                return possibleMove.newPosition.equals(SELECTED_MOVE.newPosition);
             }).length
         ) {
-            ui.makeHtmlMove(BOARD, SELECTED_MOVE);
+            ui.makeHtmlMove(BOARD, SELECTED_MOVE).then(() => {
+                ui.turn = BOARD.turn;
+            });
         } else {
-            ui.showHtmlPossibleMoves(BOARD, COORDINATES, POSSIBLE_MOVES);
+            const UI_MOVES = UserInterface.mapMoves(POSSIBLE_MOVES);
+
+            console.log('todo: implement promotion', UI_MOVES);
+
+            ui.showHtmlPossibleMoves(BOARD, COORDINATES, UI_MOVES);
         }
+    }
+
+    static mapMoves(moves) {
+        const UI_MOVES = [];
+
+        moves.forEach(move => {
+            move.uiPromote = move.promoteToPieceType !== null;
+            UI_MOVES[move.newPosition.toString()] = move;
+        });
+
+        return Object.values(UI_MOVES);
     }
 }

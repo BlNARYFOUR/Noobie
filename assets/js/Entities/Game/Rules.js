@@ -137,7 +137,7 @@ class Rules {
     }
 
     static getPossiblePawnMoves(coordinates) {
-        return [
+        const POSSIBLE_MOVES = [
             new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 0)),   // 1 up
             new Move(coordinates, new Coordinates(coordinates.x - 2, coordinates.y + 0)),   // 2 up
             new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y - 1)),   // 1 up, 1 left
@@ -147,6 +147,17 @@ class Rules {
             new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y - 1)),   // 1 down, 1 left
             new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 1)),   // 1 down, 1 right
         ];
+
+        Rules.getPossiblePawnPromotions().forEach(promotion => {
+            POSSIBLE_MOVES.push(new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 0), promotion));   // 1 up, promote
+            POSSIBLE_MOVES.push(new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y - 1), promotion));   // 1 up, 1 left, promote
+            POSSIBLE_MOVES.push(new Move(coordinates, new Coordinates(coordinates.x - 1, coordinates.y + 1), promotion));   // 1 up, 1 right, promote
+            POSSIBLE_MOVES.push(new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 0), promotion));   // 1 down, promote
+            POSSIBLE_MOVES.push(new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y - 1), promotion));   // 1 down, 1 left, promote
+            POSSIBLE_MOVES.push(new Move(coordinates, new Coordinates(coordinates.x + 1, coordinates.y + 1), promotion));   // 1 down, 1 right, promote
+        });
+
+        return POSSIBLE_MOVES;
     }
 
     static isEnPassant(board, move) {
@@ -163,6 +174,22 @@ class Rules {
                 board.previousMove.newPosition.y === (move.position.y - 1)
                 || board.previousMove.newPosition.y === (move.position.y + 1)
             )
+    }
+
+    static isPawnPromotion(board, move) {
+        const RELATIVE_BACK_RANK = board.getPiece(move.position).color === Color.WHITE ? 0 : (board.setup.length - 1);
+
+        return board.getPiece(move.position).type === PieceType.PAWN
+            && move.newPosition.x === RELATIVE_BACK_RANK;
+    }
+
+    static getPossiblePawnPromotions() {
+        return [
+            PieceType.QUEEN,
+            PieceType.ROOK,
+            PieceType.KNIGHT,
+            PieceType.BISHOP
+        ]
     }
 
     static isLegalPawnMove(board, move) {
@@ -217,10 +244,21 @@ class Rules {
                 || Rules.isEnPassant(board, possibleMove);
         });
 
+        // Filter on promotions
+        if(Rules.isPawnPromotion(board, move)) {
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return possibleMove.promoteToPieceType !== null;
+            });
+        } else {
+            possibleMoves = possibleMoves.filter(possibleMove => {
+                return possibleMove.promoteToPieceType === null;
+            });
+        }
+
         let isLegal = false;
 
         possibleMoves.forEach(possibleMove => {
-            if (possibleMove.newPosition.equals(move.newPosition)) {
+            if (possibleMove.equals(move)) {
                 isLegal = true;
             }
         });
@@ -300,7 +338,7 @@ class Rules {
         let isLegal = false;
 
         POSSIBLE_MOVES.forEach(POSSIBLE_MOVE => {
-            if (POSSIBLE_MOVE.newPosition.equals(move.newPosition)) {
+            if (POSSIBLE_MOVE.equals(move)) {
                 isLegal = true;
             }
         });
@@ -438,7 +476,7 @@ class Rules {
         let isLegal = false;
 
         possibleMoves.forEach(possibleMove => {
-            if (possibleMove.newPosition.equals(move.newPosition)) {
+            if (possibleMove.equals(move)) {
                 isLegal = true;
             }
         });
@@ -524,7 +562,7 @@ class Rules {
         let isLegal = false;
 
         possibleMoves.forEach(possibleMove => {
-            if (possibleMove.newPosition.equals(move.newPosition)) {
+            if (possibleMove.equals(move)) {
                 isLegal = true;
             }
         });

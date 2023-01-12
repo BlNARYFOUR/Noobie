@@ -59,6 +59,8 @@ class Board {
         } else if (Rules.isLongCastle(this, move)) {
             this.setup[move.newPosition.x][move.newPosition.y - 2] = new Piece();
             this.setup[move.newPosition.x][move.newPosition.y + 1] = new Piece(PieceType.ROOK, this.turn);
+        } else if (Rules.isPawnPromotion(this, move)) {
+            this.setup[move.position.x][move.position.y] = new Piece(move.promoteToPieceType, this.turn);
         }
 
         this.getPiece(move.position).moveCount++;

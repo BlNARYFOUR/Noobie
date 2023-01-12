@@ -15,4 +15,8 @@ class Coordinates {
     isInvalid() {
         return this.x < 0 || 7 < this.x || this.y < 0 || 7 < this.y;
     }
+
+    toString() {
+        return this.x + ',' + this.y;
+    }
 }
