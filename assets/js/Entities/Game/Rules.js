@@ -38,11 +38,7 @@ class Rules {
         }
     }
 
-    static isThreefoldRepetitionDraw(board) {
-        // todo: if an exact same position occurs 3 times
-    }
-
-    static isLegalMoveByPieceType(board, move, color = null) {
+    static isLegalMoveByPieceType(board, move, color = null, includePromotions = true) {
         if (
             move.isInvalid()
             || !Rules.isFriendlyPiece(board, move.position, color)
@@ -55,7 +51,7 @@ class Rules {
             case PieceType.EMPTY:
                 return false;
             case PieceType.PAWN:
-                return Rules.isLegalPawnMove(board, move);
+                return Rules.isLegalPawnMove(board, move, includePromotions);
             case PieceType.ROOK:
                 return Rules.isLegalRookMove(board, move);
             case PieceType.KNIGHT:
@@ -103,10 +99,12 @@ class Rules {
 
         board.setup.forEach((column, x) => {
             column.forEach((piece, y) => {
+                // todo promotion
                 if(Rules.isLegalMoveByPieceType(
                     board,
                     new Move(new Coordinates(x, y), KING_COORDINATES),
-                    (color === Color.WHITE ? Color.BLACK : Color.WHITE)
+                    (color === Color.WHITE ? Color.BLACK : Color.WHITE),
+                    false
                 )) {
                     isCheck = true;
                 }
@@ -128,12 +126,30 @@ class Rules {
         return true;
     }
 
+    static isCheckMate(board) {
+        return this.isCheck(board, board.turn) && this.isNoMovePossible(board);
+    }
+
     static isStaleMate(board) {
         return !this.isCheck(board, board.turn) && this.isNoMovePossible(board);
     }
 
-    static isCheckMate(board) {
-        return this.isCheck(board, board.turn) && this.isNoMovePossible(board);
+    static isThreefoldRepetitionDraw(board) {
+        // todo: if an exact same position occurs 3 times
+
+        return false;
+    }
+
+    static isFiftyMoveRuleDraw(board) {
+        // todo: implement fifty-move rule
+
+        return false;
+    }
+
+    static isInsufficientMaterialDraw(board) {
+        // todo: implement insufficient material draw
+
+        return false;
     }
 
     static getPossiblePawnMoves(coordinates) {
@@ -192,7 +208,7 @@ class Rules {
         ]
     }
 
-    static isLegalPawnMove(board, move) {
+    static isLegalPawnMove(board, move, includePromotions = true) {
         const PAWN = board.getPiece(move.position);
         let possibleMoves = Rules.getPossiblePawnMoves(move.position);
         let relativeTop = -1;
@@ -245,7 +261,7 @@ class Rules {
         });
 
         // Filter on promotions
-        if(Rules.isPawnPromotion(board, move)) {
+        if(Rules.isPawnPromotion(board, move) && includePromotions) {
             possibleMoves = possibleMoves.filter(possibleMove => {
                 return possibleMove.promoteToPieceType !== null;
             });

@@ -30,7 +30,8 @@ class UserInterface {
 
     showBoard(index, clickOnWhite = true, clickOnBlack = true) {
         const BOARDS_ELEMENT = document.querySelector('#boards');
-        let boardHTML = `<li id="board-${index}-wrapper"><ul id="board-${index}" class="chess-board">`, squareColor = Color.WHITE;
+        let squareColor = Color.WHITE;
+        let boardHTML = `<li id="board-${index}-wrapper" class="board-wrapper"><ul id="board-${index}" class="chess-board">`;
 
         this.boards[index].setup.forEach((column, x) => {
             boardHTML += `<li data-board-id="${index}"><ul data-board-id="${index}" class="chess-column">`;
@@ -46,7 +47,15 @@ class UserInterface {
             boardHTML += '</ul></li>';
         });
 
-        boardHTML += '</ul></li>';
+        boardHTML += `</ul><span class="overlay-wrapper hide" id="overlay-wrapper-${index}">`
+            + `<ul class="overlay hide" id="checkmate-white-${index}"><li>Checkmate: White won!</li></ul>`
+            + `<ul class="overlay hide" id="checkmate-black-${index}"><li>Checkmate: Black won!</li></ul>`
+            + `<ul class="overlay hide" id="draw-threefold-repition-${index}"><li>Draw: Threefold repition!</li></ul>`
+            + `<ul class="overlay hide" id="draw-fifty-move-rule-${index}"><li>Draw: Fifty-move rule!</li></ul>`
+            + `<ul class="overlay hide" id="draw-insufficient-material-${index}"><li>Draw: Insufficient material!</li></ul>`
+            + `<ul class="overlay hide" id="draw-stalemate-${index}"><li>Draw: Stalemate!</li></ul>`
+            + `${this.buildPromotionSelectorHTML(index)}`
+            + `</span></li>`;
 
         BOARDS_ELEMENT.innerHTML += boardHTML;
 
@@ -122,6 +131,45 @@ class UserInterface {
         }
     }
 
+    buildPromotionSelectorHTML(index) {
+        const UL_END_HTML = '</ul>';
+        let whiteLst = `<ul class="overlay hide" id="promotion-white-${index}">`, blackLst = `<ul class="overlay hide" id="promotion-black-${index}">`;
+
+        Rules.getPossiblePawnPromotions().forEach(possiblePromotionType => {
+            const PIECE = new Piece(possiblePromotionType, Color.WHITE);
+
+            whiteLst += `<li data-board-id="${index}" data-piece-type="${possiblePromotionType.properties}" class="chess-piece chess-piece-${this.pieceTypeToString(PIECE)}-${Color.WHITE}"></li>`;
+            blackLst += `<li data-board-id="${index}" data-piece-type="${possiblePromotionType.properties}" class="chess-piece chess-piece-${this.pieceTypeToString(PIECE)}-${Color.BLACK}"></li>`;
+        });
+
+        return whiteLst + UL_END_HTML + blackLst + UL_END_HTML;
+    }
+
+    showPromotionSelector(board) {
+        document.querySelector(`#overlay-wrapper-${board.id}`).classList.remove('hide');
+        document.querySelector(`#promotion-${board.turn}-${board.id}`).classList.remove('hide');
+    }
+
+    showCheckmate(board) {
+        document.querySelector(`#overlay-wrapper-${board.id}`).classList.remove('hide');
+        document.querySelector(`#checkmate-${board.turn === Color.WHITE ? Color.BLACK : Color.WHITE}-${board.id}`).classList.remove('hide');
+    }
+
+    showStalemate(board) {
+        document.querySelector(`#overlay-wrapper-${board.id}`).classList.remove('hide');
+        document.querySelector(`#draw-stalemate-${board.id}`).classList.remove('hide');
+    }
+
+    checkGameStatus(board) {
+        if (Rules.isCheckMate(board)) {
+            this.showCheckmate(board);
+        } else if (Rules.isStaleMate(board)) {
+            this.showStalemate(board);
+        }
+
+        // todo: other game ends
+    }
+
     async makeHtmlMove(board, move) {
         const PIECE = board.getPiece(move.position);
         const OLD_PIECE = board.getPiece(move.newPosition);
@@ -133,7 +181,6 @@ class UserInterface {
         const IS_PAWN_PROMOTION = Rules.isPawnPromotion(board, move);
 
         if(IS_PAWN_PROMOTION) {
-            // todo show pawn promotion options and await.
             await this.showPawnPromotionAndAwaitSelection(board);
             move.promoteToPieceType = this.selectedPawnPromotion[board.id];
         }
@@ -178,11 +225,14 @@ class UserInterface {
         this.pieceSelected[board.id] = false;
         this.selectedPieceCoordinates[board.id] = Coordinates.INVALID;
         this.possibleMovesForSelectedPiece[board.id] = [];
+        this.turn[board.id] = board.turn;
+
+        this.checkGameStatus(board);
     }
 
     async showPawnPromotionAndAwaitSelection(board) {
+        this.showPromotionSelector(board);
         this.awaitsPawnPromotion[board.id] = true;
-        console.log('Waiting...');
 
         return new Promise((resolve) => {
             const waitForSelection = () => {
@@ -190,7 +240,6 @@ class UserInterface {
                     if (this.awaitsPawnPromotion[board.id]) {
                         waitForSelection();
                     } else {
-                        console.log('Resolving!');
                         resolve();
                     }
                 }, 100);
@@ -211,8 +260,6 @@ class UserInterface {
     }
 
     showHtmlPossibleMoves(board, currentCoordinates, possibleMoves) {
-        console.log(possibleMoves);
-
         document.querySelectorAll(`[data-board-id='${board.id}'].chess-square.highlight-yellow`).forEach(element => {
             element.classList.remove('highlight-yellow');
         });
@@ -253,6 +300,17 @@ class UserInterface {
 
         const ELEMENT = e.target;
         const BOARD = ui.boards[ELEMENT.dataset.boardId];
+        const SELECTED_PAWN_PROMOTION = ELEMENT.dataset.pieceType;
+
+        if(SELECTED_PAWN_PROMOTION) {
+            ui.selectedPawnPromotion[BOARD.id] = PieceType.getFromProperties(SELECTED_PAWN_PROMOTION);
+            ui.awaitsPawnPromotion[BOARD.id] = false;
+            ELEMENT.parentElement.classList.add('hide');
+            ELEMENT.parentElement.parentElement.classList.add('hide');
+
+            return;
+        }
+
         const COORDINATES = new Coordinates(parseInt(ELEMENT.dataset.x), parseInt(ELEMENT.dataset.y));
         const POSSIBLE_MOVES = Rules.getLegalMoves(BOARD, COORDINATES);
         const SELECTED_MOVE = new Move(ui.selectedPieceCoordinates[BOARD.id], COORDINATES);
@@ -272,14 +330,10 @@ class UserInterface {
             }).length
         ) {
             ui.makeHtmlMove(BOARD, SELECTED_MOVE).then(() => {
-                ui.turn = BOARD.turn;
+                console.log('Player made a move.');
             });
         } else {
-            const UI_MOVES = UserInterface.mapMoves(POSSIBLE_MOVES);
-
-            console.log('todo: implement promotion', UI_MOVES);
-
-            ui.showHtmlPossibleMoves(BOARD, COORDINATES, UI_MOVES);
+            ui.showHtmlPossibleMoves(BOARD, COORDINATES, UserInterface.mapMoves(POSSIBLE_MOVES));
         }
     }
 
