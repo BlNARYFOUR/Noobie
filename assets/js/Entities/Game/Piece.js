@@ -8,4 +8,8 @@ class Piece {
             throw new Error('Color must be set if the piece type does not equal [PIECES.EMPTY]!');
         }
     }
+
+    equals(piece) {
+        return this.color === piece.color && this.type === piece.type;
+    }
 }

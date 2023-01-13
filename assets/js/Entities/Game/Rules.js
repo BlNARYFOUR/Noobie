@@ -17,6 +17,18 @@ class Rules {
         return LEGAL_MOVES;
     }
 
+    static getAllLegalMoves(board) {
+        const LEGAL_MOVES = [];
+
+        board.setup.forEach((column, x) => {
+            column.forEach((piece, y) => {
+                LEGAL_MOVES.push(...Rules.getLegalMoves(board, new Coordinates(x, y)));
+            });
+        });
+
+        return LEGAL_MOVES;
+    }
+
     static getPossibleMovesByPieceType(board, coordinates) {
         switch (board.getPiece(coordinates).type) {
             case PieceType.EMPTY:
@@ -83,8 +95,8 @@ class Rules {
     }
 
     static doesMoveResultInCheck(board, move, color) {
-        const NEW_BOARD = BoardFactory.getInstance().createBoard(board.setup, board.turn, [...board.moveHistory]);
-        NEW_BOARD.doMove(move).switchTurn().pushToMoveHistory(move);
+        const NEW_BOARD = BoardFactory.getInstance().createBoard(board.setup, board.turn, board.moveHistory);
+        NEW_BOARD.play(move);
 
         return Rules.isCheck(NEW_BOARD, color);
     }
@@ -99,7 +111,6 @@ class Rules {
 
         board.setup.forEach((column, x) => {
             column.forEach((piece, y) => {
-                // todo promotion
                 if(Rules.isLegalMoveByPieceType(
                     board,
                     new Move(new Coordinates(x, y), KING_COORDINATES),
@@ -135,9 +146,9 @@ class Rules {
     }
 
     static isThreefoldRepetitionDraw(board) {
-        // todo: if an exact same position occurs 3 times
+        const BOARD_STATE_OCCURRENCE_COUNT = board.boardHistory.countBoardStateOccurrence(board);
 
-        return false;
+        return 3 <= BOARD_STATE_OCCURRENCE_COUNT;
     }
 
     static isFiftyMoveRuleDraw(board) {
@@ -150,6 +161,22 @@ class Rules {
         // todo: implement insufficient material draw
 
         return false;
+    }
+
+    static getGameState(board) {
+        if (Rules.isCheckMate(board)) {
+            if(board.turn === Color.WHITE) {
+                return GameState.CHECKMATE_BLACK;
+            } else {
+                return GameState.CHECKMATE_WHITE;
+            }
+        } else if (Rules.isStaleMate(board)) {
+            return GameState.DRAW_STALEMATE;
+        } else if (Rules.isThreefoldRepetitionDraw(board)) {
+            return GameState.DRAW_THREEFOLD_REPETITION;
+        }
+
+        return GameState.ONGOING;
     }
 
     static getPossiblePawnMoves(coordinates) {

@@ -16,11 +16,12 @@ class Board {
         return (0 < this.moveHistory.length) ? this.moveHistory[this.moveHistory.length - 1] : (new Move());
     }
 
-    constructor(id, setup = [], turn = Color.WHITE, moveHistory = []) {
+    constructor(id, setup = [], turn = Color.WHITE, moveHistory = [], boardHistory = new BoardHistory()) {
         this.id = id;
         this.setup = Helper.deepCopy(setup);
         this.turn = turn;
-        this.moveHistory = moveHistory;
+        this.moveHistory = [...moveHistory];
+        this.boardHistory = boardHistory;
 
         ObjectFixer.fixBoardSetup(this.setup);
     }
@@ -28,6 +29,9 @@ class Board {
     createDefaultSetup() {
         this.setup = Helper.deepCopy(Board.DEFAULT_BOARD_SETUP);
         ObjectFixer.fixBoardSetup(this.setup);
+
+        this.pushToBoardHistory();
+
         return this;
     }
 
@@ -82,11 +86,26 @@ class Board {
         return this;
     }
 
-    doMoveIfLegal(move) {
-        const isLegal = Rules.isLegalMove(this, move);
+    pushToBoardHistory() {
+        this.boardHistory.push(this);
 
-        if(isLegal) {
-            this.doMove(move).switchTurn().pushToMoveHistory(move);
+        return this;
+    }
+
+    play(move) {
+        return this.doMove(move).switchTurn().pushToMoveHistory(move).pushToBoardHistory();
+    }
+
+    doMoveIfLegal(move) {
+        if(Rules.getGameState(this) !== GameState.ONGOING) {
+            console.warn('Game already finished!');
+            return;
+        }
+
+        const IS_LEGAL = Rules.isLegalMove(this, move);
+
+        if(IS_LEGAL) {
+            this.play(move);
 
             return true;
         }
@@ -94,5 +113,21 @@ class Board {
         console.warn('Illegal move...');
 
         return false;
+    }
+
+    isTurnEqual(board) {
+        return this.turn === board.turn;
+    }
+
+    isSetupEqual(board) {
+        return Helper.areArraysEqual(this.setup, board.setup);
+    }
+
+    isLegalMovesEqual(board) {
+        return Helper.areArraysEqual(Rules.getAllLegalMoves(this), Rules.getAllLegalMoves(board));
+    }
+
+    equals(board) {
+        return this.isTurnEqual(board) && this.isSetupEqual(board) && this.isLegalMovesEqual(board);
     }
 }

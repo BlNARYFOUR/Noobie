@@ -47,17 +47,26 @@ class UserInterface {
             boardHTML += '</ul></li>';
         });
 
-        boardHTML += `</ul><span class="overlay-wrapper hide" id="overlay-wrapper-${index}">`
-            + `<ul class="overlay hide" id="checkmate-white-${index}"><li>Checkmate: White won!</li></ul>`
-            + `<ul class="overlay hide" id="checkmate-black-${index}"><li>Checkmate: Black won!</li></ul>`
-            + `<ul class="overlay hide" id="draw-threefold-repition-${index}"><li>Draw: Threefold repition!</li></ul>`
-            + `<ul class="overlay hide" id="draw-fifty-move-rule-${index}"><li>Draw: Fifty-move rule!</li></ul>`
-            + `<ul class="overlay hide" id="draw-insufficient-material-${index}"><li>Draw: Insufficient material!</li></ul>`
-            + `<ul class="overlay hide" id="draw-stalemate-${index}"><li>Draw: Stalemate!</li></ul>`
-            + `${this.buildPromotionSelectorHTML(index)}`
-            + `</span></li>`;
+        boardHTML += `</ul>`
+            + `    <a href="#" class="turn-board" data-board-id="${index}">Turn board</a>`
+            + `    <span class="overlay-wrapper hide" id="overlay-wrapper-${index}">`
+            + `        <ul class="overlay hide" id="${GameState.CHECKMATE_WHITE.NAME}-${index}"><li>Checkmate: White won!</li></ul>`
+            + `        <ul class="overlay hide" id="${GameState.CHECKMATE_BLACK.NAME}-${index}"><li>Checkmate: Black won!</li></ul>`
+            + `        <ul class="overlay hide" id="${GameState.DRAW_THREEFOLD_REPETITION.NAME}-${index}"><li>Draw: Threefold repetition!</li></ul>`
+            + `        <ul class="overlay hide" id="${GameState.DRAW_FIFTY_MOVE_RULE.NAME}-${index}"><li>Draw: Fifty-move rule!</li></ul>`
+            + `        <ul class="overlay hide" id="${GameState.DRAW_INSUFFICIENT_MATERIAL.NAME}-${index}"><li>Draw: Insufficient material!</li></ul>`
+            + `        <ul class="overlay hide" id="${GameState.DRAW_STALEMATE.NAME}-${index}"><li>Draw: Stalemate!</li></ul>`
+            + `        ${this.buildPromotionSelectorHTML(index)}`
+            + `    </span>`
+            + `</li>`;
 
         BOARDS_ELEMENT.innerHTML += boardHTML;
+
+        const TURN_BTN_ELEMENTS = BOARDS_ELEMENT.querySelectorAll(`.turn-board`);
+
+        TURN_BTN_ELEMENTS.forEach(TURN_BTN_ELEMENT => {
+            TURN_BTN_ELEMENT.addEventListener('click', (e) => UserInterface.onCLickTurnBoardHTML(e));
+        });
 
         const PIECE_ELEMENTS = BOARDS_ELEMENT.querySelectorAll(`.chess-piece`);
 
@@ -150,24 +159,13 @@ class UserInterface {
         document.querySelector(`#promotion-${board.turn}-${board.id}`).classList.remove('hide');
     }
 
-    showCheckmate(board) {
-        document.querySelector(`#overlay-wrapper-${board.id}`).classList.remove('hide');
-        document.querySelector(`#checkmate-${board.turn === Color.WHITE ? Color.BLACK : Color.WHITE}-${board.id}`).classList.remove('hide');
-    }
-
-    showStalemate(board) {
-        document.querySelector(`#overlay-wrapper-${board.id}`).classList.remove('hide');
-        document.querySelector(`#draw-stalemate-${board.id}`).classList.remove('hide');
-    }
-
     checkGameStatus(board) {
-        if (Rules.isCheckMate(board)) {
-            this.showCheckmate(board);
-        } else if (Rules.isStaleMate(board)) {
-            this.showStalemate(board);
-        }
+        const GAME_STATE = Rules.getGameState(board);
 
-        // todo: other game ends
+        if (GAME_STATE !== GameState.ONGOING) {
+            document.querySelector(`#overlay-wrapper-${board.id}`).classList.remove('hide');
+            document.querySelector(`#${GAME_STATE.NAME}-${board.id}`).classList.remove('hide');
+        }
     }
 
     async makeHtmlMove(board, move) {
@@ -292,11 +290,19 @@ class UserInterface {
         });
     }
 
+    static mapMoves(moves) {
+        const UI_MOVES = [];
+
+        moves.forEach(move => {
+            move.uiPromote = move.promoteToPieceType !== null;
+            UI_MOVES[move.newPosition.toString()] = move;
+        });
+
+        return Object.values(UI_MOVES);
+    }
+
     static onClickPieceHTML(e, ui) {
-        if(e) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-        }
+        Helper.preventDefaultAndStopImmediatePropagation(e);
 
         const ELEMENT = e.target;
         const BOARD = ui.boards[ELEMENT.dataset.boardId];
@@ -337,14 +343,9 @@ class UserInterface {
         }
     }
 
-    static mapMoves(moves) {
-        const UI_MOVES = [];
+    static onCLickTurnBoardHTML(e) {
+        Helper.preventDefaultAndStopImmediatePropagation(e);
 
-        moves.forEach(move => {
-            move.uiPromote = move.promoteToPieceType !== null;
-            UI_MOVES[move.newPosition.toString()] = move;
-        });
-
-        return Object.values(UI_MOVES);
+        document.querySelector(`#board-${e.target.dataset.boardId}`).classList.toggle('flip-board');
     }
 }
