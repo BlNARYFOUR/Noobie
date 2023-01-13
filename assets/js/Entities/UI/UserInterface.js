@@ -168,7 +168,7 @@ class UserInterface {
         }
     }
 
-    async makeHtmlMove(board, move) {
+    async makeHtmlMove(board, move, isBot = false) {
         const PIECE = board.getPiece(move.position);
         const OLD_PIECE = board.getPiece(move.newPosition);
         const EMPTY_PIECE = new Piece();
@@ -178,7 +178,7 @@ class UserInterface {
         const IS_LONG_CASTLE = Rules.isLongCastle(board, move);
         const IS_PAWN_PROMOTION = Rules.isPawnPromotion(board, move);
 
-        if(IS_PAWN_PROMOTION) {
+        if(IS_PAWN_PROMOTION && !isBot) {
             await this.showPawnPromotionAndAwaitSelection(board);
             move.promoteToPieceType = this.selectedPawnPromotion[board.id];
         }
@@ -321,14 +321,6 @@ class UserInterface {
         const POSSIBLE_MOVES = Rules.getLegalMoves(BOARD, COORDINATES);
         const SELECTED_MOVE = new Move(ui.selectedPieceCoordinates[BOARD.id], COORDINATES);
 
-        if (ELEMENT.dataset.uiClickWhite !== 'true' && BOARD.getPiece(COORDINATES).color === Color.WHITE) {
-            return;
-        }
-
-        if (ELEMENT.dataset.uiClickBlack !== 'true' && BOARD.getPiece(COORDINATES).color === Color.BLACK) {
-            return;
-        }
-
         if (
             ui.pieceSelected[BOARD.id]
             && 0 < ui.possibleMovesForSelectedPiece[BOARD.id].filter((possibleMove) => {
@@ -339,6 +331,14 @@ class UserInterface {
                 console.log('Player made a move.');
             });
         } else {
+            if (ELEMENT.dataset.uiClickWhite !== 'true' && BOARD.getPiece(COORDINATES).color === Color.WHITE) {
+                return;
+            }
+
+            if (ELEMENT.dataset.uiClickBlack !== 'true' && BOARD.getPiece(COORDINATES).color === Color.BLACK) {
+                return;
+            }
+
             ui.showHtmlPossibleMoves(BOARD, COORDINATES, UserInterface.mapMoves(POSSIBLE_MOVES));
         }
     }

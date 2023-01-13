@@ -1,9 +1,14 @@
 document.addEventListener('DOMContentLoaded', init);
 
-const UI = new UserInterface();
+let UI;
+let BOT_TEST;
 
 function init() {
-    const BOARD_ID = UI.createDefaultBoard();
+    UI = new UserInterface();
 
-    UI.printBoard(BOARD_ID).showBoard(BOARD_ID);
+    const BOARD_ID = UI.createDefaultBoard();
+    UI.showBoard(BOARD_ID, true, false);
+    BOT_TEST = new BotTest(UI, BOARD_ID, Color.BLACK);
+
+    BOT_TEST.start();
 }
