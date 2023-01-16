@@ -77,11 +77,11 @@ class UserInterface {
         return this;
     }
 
-    printBoard(index) {
+    printBoard(board) {
         let rtStr = '';
         let colorArr = [];
 
-        this.boards[index].setup.forEach(column => {
+        board.setup.forEach(column => {
             column.forEach(piece => {
                 if (piece.color === Color.WHITE) {
                     colorArr.push('color:white;');
@@ -288,6 +288,11 @@ class UserInterface {
         possibleMoves.forEach(possibleMove => {
             document.querySelector(`[data-board-id='${board.id}'][data-x='${possibleMove.newPosition.x}'][data-y='${possibleMove.newPosition.y}']`).classList.toggle('possible-move');
         });
+    }
+
+    flipBoard(index) {
+        document.querySelector(`#board-${index}`).classList.toggle('flip-board');
+        return this;
     }
 
     static mapMoves(moves) {

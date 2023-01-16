@@ -18,7 +18,16 @@ class BotTest extends BotInterface {
 
         do {
             await this.waitForTurn();
-            this.makeRandomMove();
+
+            if(Rules.getGameState(this.#ui.boards[this.#boardId]) === GameState.ONGOING) {
+                await new Promise((resolve) => {
+                    setTimeout(resolve, 1000);
+                });
+
+                this.makeRandomMove();
+            } else {
+                this.stop();
+            }
         } while (!this.#stop);
     }
 

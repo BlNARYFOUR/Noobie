@@ -210,6 +210,8 @@ class Rules {
             && board.getPiece(move.position).type === PieceType.PAWN
             && board.getPiece(board.previousMove.newPosition).type === PieceType.PAWN
             && board.getPiece(board.previousMove.newPosition).moveCount === 1
+            && board.previousMove.newPosition.x === (board.previousMove.position.x - 2 * RELATIVE_TOP)
+            && board.previousMove.newPosition.y === board.previousMove.position.y
             && board.previousMove.newPosition.x === move.position.x
             && move.newPosition.y === board.previousMove.newPosition.y
             && (move.newPosition.x - RELATIVE_TOP) === board.previousMove.newPosition.x
@@ -275,8 +277,10 @@ class Rules {
         // Filter if one up is not possible
         if(ONE_UP_COORDINATES.isInvalid() || board.getPiece(ONE_UP_COORDINATES).type !== PieceType.EMPTY) {
             possibleMoves = possibleMoves.filter(possibleMove => {
-                return possibleMove.newPosition.x !== (possibleMove.position.x + relativeTop)
-                    || possibleMove.newPosition.y !== possibleMove.position.y;
+                return (
+                        possibleMove.newPosition.x !== (possibleMove.position.x + relativeTop)
+                        && possibleMove.newPosition.x !== (possibleMove.position.x + relativeTop * 2)
+                    ) || possibleMove.newPosition.y !== possibleMove.position.y;
             });
         }
 
