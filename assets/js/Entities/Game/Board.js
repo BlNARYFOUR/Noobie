@@ -97,14 +97,14 @@ class Board {
     }
 
     doMoveIfLegal(move) {
-        if(Rules.getGameState(this) !== GameState.ONGOING) {
+        if (Rules.getGameState(this) !== GameState.ONGOING) {
             console.warn('Game already finished!');
             return;
         }
 
         const IS_LEGAL = Rules.isLegalMove(this, move);
 
-        if(IS_LEGAL) {
+        if (IS_LEGAL) {
             this.play(move);
 
             return true;

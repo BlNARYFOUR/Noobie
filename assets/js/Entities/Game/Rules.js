@@ -55,6 +55,7 @@ class Rules {
             move.isInvalid()
             || !Rules.isFriendlyPiece(board, move.position, color)
             || Rules.isMoveToFriendlyField(board, move)
+            || (move.position.x === move.newPosition.x && move.position.y === move.newPosition.y)
         ) {
             return false;
         }
@@ -152,15 +153,112 @@ class Rules {
     }
 
     static isFiftyMoveRuleDraw(board) {
-        // todo: implement fifty-move rule
+        let moveCounter = 0;
+
+        for (let index = board.boardHistory.history.length - 2; 0 <= index; index--) {
+            const HISTORIC_MOVE = board.moveHistory[index];
+            const HISTORIC_BOARD = board.boardHistory.history[index];
+
+            if (HISTORIC_BOARD.getPiece(HISTORIC_MOVE.position).type === PieceType.PAWN) {
+                return false;
+            }
+
+            if (HISTORIC_BOARD.getPiece(HISTORIC_MOVE.newPosition).type !== PieceType.EMPTY) {
+                return false;
+            }
+
+            moveCounter++;
+
+            if (moveCounter === 100) {
+                return true;
+            }
+        }
 
         return false;
     }
 
     static isInsufficientMaterialDraw(board) {
-        // todo: implement insufficient material draw
+        const PIECES = [];
+        PIECES[Color.WHITE] = [];
+        PIECES[Color.BLACK] = [];
+        let isInsufficientMaterial = false;
 
-        return false;
+        // get all pieces
+
+        board.setup.forEach((column, x) => {
+            column.forEach((piece, y) => {
+                if(piece.type !== PieceType.EMPTY) {
+                    PIECES[piece.color].push({
+                        type: piece.type,
+                        coordinates: new Coordinates(x, y)
+                    });
+                }
+            });
+        });
+
+        let mostLengthColor, leastLengthColor;
+        if(PIECES[Color.WHITE].length < PIECES[Color.BLACK].length) {
+            mostLengthColor = Color.BLACK;
+            leastLengthColor = Color.WHITE;
+        } else {
+            mostLengthColor = Color.WHITE;
+            leastLengthColor = Color.BLACK;
+        }
+
+        // king vs king
+        if (
+            PIECES[mostLengthColor].length === 1
+            && PIECES[leastLengthColor].length === 1
+        ) {
+            isInsufficientMaterial = true;
+        }
+
+        // king and bishop vs king
+        // king and knight vs king
+        if (
+            PIECES[mostLengthColor].length === 2
+            && PIECES[leastLengthColor].length === 1
+            && 0 < PIECES[mostLengthColor].filter(piece => {
+                return piece.type === PieceType.BISHOP
+                || piece.type === PieceType.KNIGHT;
+            }).length
+        ) {
+            isInsufficientMaterial = true;
+        }
+
+        const BISHOP_PIECE_RES_MOST = PIECES[mostLengthColor].filter(piece => {
+            return piece.type === PieceType.BISHOP;
+        });
+
+        const BISHOP_PIECE_RES_LEAST = PIECES[leastLengthColor].filter(piece => {
+            return piece.type === PieceType.BISHOP;
+        });
+
+        // king and bishop vs king and bishop of the same coloured square
+        if (
+            PIECES[mostLengthColor].length === 2
+            && PIECES[leastLengthColor].length === 2
+            && 0 < BISHOP_PIECE_RES_MOST.length
+            && 0 < BISHOP_PIECE_RES_LEAST.length
+        ) {
+            // test if bishops are on same square color:
+            // bishops diagonal color can be calculated with "squareColor = (x + y) % 2 ? Color.WHITE : Color.BLACK"
+            let squareColorMost, squareColorLeast;
+
+            BISHOP_PIECE_RES_MOST.forEach(bishopPiece => {
+                squareColorMost = (bishopPiece.coordinates.x + bishopPiece.coordinates.y) % 2;
+            });
+
+            BISHOP_PIECE_RES_LEAST.forEach(bishopPiece => {
+                squareColorLeast = (bishopPiece.coordinates.x + bishopPiece.coordinates.y) % 2;
+            });
+
+            if (squareColorMost === squareColorLeast) {
+                isInsufficientMaterial = true;
+            }
+        }
+
+        return isInsufficientMaterial;
     }
 
     static getGameState(board) {
@@ -174,6 +272,10 @@ class Rules {
             return GameState.DRAW_STALEMATE;
         } else if (Rules.isThreefoldRepetitionDraw(board)) {
             return GameState.DRAW_THREEFOLD_REPETITION;
+        } else if (Rules.isInsufficientMaterialDraw(board)) {
+            return GameState.DRAW_INSUFFICIENT_MATERIAL;
+        } else if (Rules.isFiftyMoveRuleDraw(board)) {
+            return GameState.DRAW_FIFTY_MOVE_RULE;
         }
 
         return GameState.ONGOING;
@@ -572,6 +674,7 @@ class Rules {
             && ROOK_SQUARE.color === board.turn
             && board.getPiece(new Coordinates(move.position.x, move.position.y + 1)).type === PieceType.EMPTY
             && board.getPiece(new Coordinates(move.position.x, move.position.y + 2)).type === PieceType.EMPTY
+            && !Rules.isCheck(board, board.turn)
             && !Rules.doesMoveResultInCheck(board, new Move(move.position, new Coordinates(move.position.x, move.position.y + 1)), board.turn);
     }
 
@@ -588,6 +691,7 @@ class Rules {
             && ROOK_SQUARE.color === board.turn
             && board.getPiece(new Coordinates(move.position.x, move.position.y - 1)).type === PieceType.EMPTY
             && board.getPiece(new Coordinates(move.position.x, move.position.y - 2)).type === PieceType.EMPTY
+            && !Rules.isCheck(board, board.turn)
             && !Rules.doesMoveResultInCheck(board, new Move(move.position, new Coordinates(move.position.x, move.position.y - 1)), board.turn);
     }
 
